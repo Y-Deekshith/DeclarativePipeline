@@ -6,6 +6,7 @@ pipeline {
         // dockerSwarmManager = ''
         // dockerhost = ''
         dockerImage = ''
+        PACKER_BUILD = 'YES'
     }
     tools {
         maven 'Maven3'
@@ -62,19 +63,48 @@ pipeline {
         //         }
         //     }
         // }
-        stage('Building our image') {
+        stage('Building docker image') {
             steps{
                 script {
                     dockerImage = docker.build registry + ":$BUILD_NUMBER"
                     }
                 }
         }
-        stage('Push our image') {
+        stage('Push docker image') {
             steps{
                 script {
                     docker.withRegistry( '', registryCredential ) {
                     dockerImage.push()
                     }
+                }
+            }
+        }
+        stage('Performing packer build') {
+            when {
+                expression {
+                    env.PACKER_BUILD == 'YES'
+                }
+            }
+            steps{
+                sh 'packer build -var-file packer-vars.json packer.json | tee output.txt'
+                sh "tail -2 output.txt | head -2 | awk 'match(\$0, /ami-.*/) { print substr(\$0, RSTART, RLENGTH) }' > ami.txt"
+                sh "echo \$(cat ami.txt) > ami.txt"
+                script{
+                    def AMIID = readFile('ami.txt').trim()
+                    sh "echo variable \\\"imagename\\\" { default = \\\"$AMIID\\\" } >> variables.tf"
+                }
+            }
+        }
+        stage('Default packer ami') {
+            when {
+                expression {
+                    env.PACKER_BUILD == 'NO'
+                }
+            }
+            steps{
+                script{
+                    def AMIID = 'ami-0bf036b289f524a6e'
+                    sh "echo variable \\\"imagename\\\" { default = \\\"$AMIID\\\" } >> variables.tf"
                 }
             }
         }
