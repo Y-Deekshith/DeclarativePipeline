@@ -6,7 +6,7 @@ pipeline {
         // dockerSwarmManager = ''
         // dockerhost = ''
         dockerImage = ''
-        PACKER_BUILD = 'YES'
+        PACKER_BUILD = 'NO'
     }
     tools {
         maven 'Maven3'
@@ -103,7 +103,7 @@ pipeline {
             }
             steps{
                 script{
-                    def AMIID = 'ami-0bf036b289f524a6e'
+                    def AMIID = 'ami-0e3031cfde1489854'
                     sh "echo variable \\\"imagename\\\" { default = \\\"$AMIID\\\" } >> variables.tf"
                 }
             }
